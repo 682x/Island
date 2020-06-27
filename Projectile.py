@@ -1,30 +1,35 @@
-import pygame
 import math
+from Entity import *
 
 
-class Projectile:
-    def __init__(self, x, y, radius, vx, vy, range):
-        self.x = x
-        self.y = y
-        self.radius = radius
-        self.vx = vx
-        self.vy = vy
-        self.range = range
-        self.distanceTravelled = 0
+class Projectile(Entity):
+    def __init__(self, pos, vel, radius, range, damage):
+        super().__init__(pos, vel, radius, -1)
+        self._range = range
+        self._initPosX, self._initPosY = pos
+        self._damage = damage
 
-    def getCoords(self):
-        return (int(self.x), int(self.y))
+    # Advance the entity by a timestep, given in seconds
+    def advance(self, timestep):
+        self._posX += timestep * self._velX
+        self._posY += timestep * self._velY
+        return self
 
-    def getRadius(self):
-        return self.radius
+    # Check if the entity is still in range
+    def inRange(self):
+        deltaX = self._posX - self._initPosX
+        deltaY = self._posY - self._initPosY
+        distanceTravelled = math.sqrt(deltaX ** 2 + deltaY ** 2)
+        return distanceTravelled <= self._range
 
-    def getRange(self):
-        return self.range
+    @property
+    def range(self):
+        return self._range
 
-    def getDistanceTravelled(self):
-        return self.distanceTravelled
+    @range.setter
+    def velY(self, value):
+        self._range = value
 
-    def updatePosition(self):
-        self.x += self.vx
-        self.y += self.vy
-        #self.distanceTravelled += math.sqrt(self.vx*self.vx + self.vy*self.vy)
+    @property
+    def damage(self):
+        return self._damage
