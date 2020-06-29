@@ -3,6 +3,7 @@ import math
 import random
 from Projectile import *
 from Player import *
+from Item import *
 
 
 WINDOW_WIDTH = 600
@@ -15,6 +16,7 @@ player = Player((100, 100), (0, 0), 10, PLAYER_HEALTH)
 projectileList = []
 entityList = []
 ENTITY_COUNT = 10
+
 
 # Event list
 eventList = []
@@ -39,6 +41,7 @@ YELLOW = (255, 255, 0)
 # Player speed values, in px/sec
 PLAYER_SPEED = 200
 PLAYER_ACCELERATION = 1
+defaultGun = Item("Classic", 3, 300, 300, 25, 12, 48)
 PROJECTILE_SPEED = 400
 PROJECTILE_DAMAGE = 25
 player.velX, player.velY = 0, 0
@@ -47,6 +50,7 @@ player.velX, player.velY = 0, 0
 def updatePlayerPosition():
     isPressed = pygame.key.get_pressed()
 
+    # Movement keys accelerate player in the target direction, up to a limit
     if isPressed[pygame.K_w] and player.velY > -PLAYER_SPEED:
         player.velY -= PLAYER_ACCELERATION
     elif not isPressed[pygame.K_w] and player.velY < 0:
@@ -67,22 +71,29 @@ def updatePlayerPosition():
     player.posY += player.velY * timeDeltaMs
     player.posX += player.velX * timeDeltaMs
 
+    # Handle reloading
+    if isPressed[pygame.K_r]:
+        defaultGun.reload()
 
-def fireProjectile():
-    # Get current mouse position
-    mouseX, mouseY = pygame.mouse.get_pos()
-    deltaX = mouseX - player.posX
-    deltaY = mouseY - player.posY
-    # Find out how much to scale the delta by
-    magnitude = math.sqrt(deltaX ** 2 + deltaY ** 2)
-    scalar = PROJECTILE_SPEED / magnitude
-    # Calculate projectile velocity components
-    projectileVelX = deltaX * scalar + player.velX
-    projectileVelY = deltaY * scalar + player.velY
-    # Make a new projectile instance, and push it to the list
-    projectile = Projectile((player.posX, player.posY),
-                            (projectileVelX, projectileVelY), 3, 300, PROJECTILE_DAMAGE)
-    projectileList.append(projectile)
+
+def fireProjectile(gun):
+    # Check ammo
+    if gun.canShoot():
+        gun.depleteAmmo()
+        # Get current mouse position
+        mouseX, mouseY = pygame.mouse.get_pos()
+        deltaX = mouseX - player.posX
+        deltaY = mouseY - player.posY
+        # Find out how much to scale the delta by
+        magnitude = math.sqrt(deltaX ** 2 + deltaY ** 2)
+        scalar = gun.projSpeed / magnitude
+        # Calculate projectile velocity components
+        projectileVelX = deltaX * scalar + player.velX
+        projectileVelY = deltaY * scalar + player.velY
+        # Make a new projectile instance, and push it to the list
+        projectile = Projectile((player.posX, player.posY),
+                            (projectileVelX, projectileVelY), gun.projRadius, gun.projRange, gun.damage)
+        projectileList.append(projectile)
 
 def handleCollisions():
     # List of projectiles / entities that remain because they don't collide
@@ -125,6 +136,12 @@ def drawGameState():
     # Draw the FPS counter
     fpsSurface = DEBUG_FONT.render(f'{int(clock.get_fps())} FPS', False, YELLOW)
     window.blit(fpsSurface, (0, 0))
+    # Draw the gun name and ammo counts
+    gunName = DEBUG_FONT.render(defaultGun.name, False, WHITE)
+    ammoText = str(defaultGun.currentMag) + " // " + str(defaultGun.remainingAmmo);
+    ammoCounter = DEBUG_FONT.render(ammoText, False, WHITE)
+    window.blit(gunName, (0, WINDOW_HEIGHT-55))
+    window.blit(ammoCounter, (0, WINDOW_HEIGHT-30))
     # Update the window
     pygame.display.flip()
 
@@ -143,11 +160,10 @@ while not any([event.type == pygame.QUIT for event in eventList]):
     # Get event list
     eventList = pygame.event.get()
     if any([event.type == pygame.MOUSEBUTTONDOWN for event in eventList]):
-        fireProjectile()
+        fireProjectile(defaultGun)
     updatePlayerPosition()
     updateProjectilePositions()
     handleCollisions()
     drawGameState()
-    print(len(entityList))
 
 pygame.quit()
