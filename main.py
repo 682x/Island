@@ -15,7 +15,7 @@ PLAYER_HEALTH = 100
 player = Player((100, 100), (0, 0), 10, PLAYER_HEALTH)
 projectileList = []
 entityList = []
-entityCOUNT = 10
+ENTITY_COUNT = 10
 
 
 # Event list
@@ -146,7 +146,7 @@ def drawGameState():
     pygame.display.flip()
 
 def generateEntities():
-    for i in range(entityCOUNT):
+    for i in range(ENTITY_COUNT):
         entityPosX = random.randint(100, WINDOW_WIDTH)
         entityPosY = random.randint(100, WINDOW_HEIGHT)
         entity = Entity((entityPosX, entityPosY), (0, 0), random.randint(20, 60), 100)
