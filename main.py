@@ -1,9 +1,9 @@
 import pygame
 import math
 import random
-from Projectile import *
-from Player import *
-from Item import *
+from projectile import *
+from player import *
+from item import *
 
 
 WINDOW_WIDTH = 600
@@ -104,15 +104,15 @@ def handleCollisions():
     global entityList
     # Check projectiles that collide
     for projectile in projectileList:
-        if not any([projectile.collidesWith(entity) for entity in entityList]):
+        if not any([projectile.collidesWith(entity_) for entity_ in entityList]):
             newProjectileList.append(projectile)
     # Check entities that collide
-    for entity in entityList:
+    for entity_ in entityList:
         for projectile in projectileList:
-            entity.takeDamage(projectile)
+            entity_.takeDamage(projectile)
 
-        if not entity.isDead:
-            newEntityList.append(entity)
+        if not entity_.isDead:
+            newEntityList.append(entity_)
     # Update the global lists
     projectileList = newProjectileList
     entityList = newEntityList
@@ -131,8 +131,8 @@ def drawGameState():
     for projectile in projectileList:
         pygame.draw.circle(window, RED, projectile.intPos, projectile.radius)
     # Draw the entities
-    for entity in entityList:
-        pygame.draw.circle(window, GREEN, entity.intPos, entity.radius)
+    for entity_ in entityList:
+        pygame.draw.circle(window, GREEN, entity_.intPos, entity_.radius)
     # Draw the FPS counter
     fpsSurface = DEBUG_FONT.render(f'{int(clock.get_fps())} FPS', False, YELLOW)
     window.blit(fpsSurface, (0, 0))
@@ -149,8 +149,8 @@ def generateEntities():
     for i in range(ENTITY_COUNT):
         entityPosX = random.randint(100, WINDOW_WIDTH)
         entityPosY = random.randint(100, WINDOW_HEIGHT)
-        entity = Entity((entityPosX, entityPosY), (0, 0), random.randint(20, 60), 100)
-        entityList.append(entity)
+        entity_ = Entity((entityPosX, entityPosY), (0, 0), random.randint(20, 60), 100)
+        entityList.append(entity_)
 
 generateEntities()
 

@@ -1,5 +1,5 @@
 import math
-from Entity import *
+from entity import *
 
 
 class Projectile(Entity):
