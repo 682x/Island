@@ -15,7 +15,7 @@ PLAYER_HEALTH = 100
 player = Player((100, 100), (0, 0), 10, PLAYER_HEALTH)
 projectileList = []
 entityList = []
-ENTITY_COUNT = 10
+entityCOUNT = 10
 
 
 # Event list
@@ -104,15 +104,15 @@ def handleCollisions():
     global entityList
     # Check projectiles that collide
     for projectile in projectileList:
-        if not any([projectile.collidesWith(entity_) for entity_ in entityList]):
+        if not any([projectile.collidesWith(entity) for entity in entityList]):
             newProjectileList.append(projectile)
     # Check entities that collide
-    for entity_ in entityList:
+    for entity in entityList:
         for projectile in projectileList:
-            entity_.takeDamage(projectile)
+            entity.takeDamage(projectile)
 
-        if not entity_.isDead:
-            newEntityList.append(entity_)
+        if not entity.isDead:
+            newEntityList.append(entity)
     # Update the global lists
     projectileList = newProjectileList
     entityList = newEntityList
@@ -131,8 +131,8 @@ def drawGameState():
     for projectile in projectileList:
         pygame.draw.circle(window, RED, projectile.intPos, projectile.radius)
     # Draw the entities
-    for entity_ in entityList:
-        pygame.draw.circle(window, GREEN, entity_.intPos, entity_.radius)
+    for entity in entityList:
+        pygame.draw.circle(window, GREEN, entity.intPos, entity.radius)
     # Draw the FPS counter
     fpsSurface = DEBUG_FONT.render(f'{int(clock.get_fps())} FPS', False, YELLOW)
     window.blit(fpsSurface, (0, 0))
@@ -140,17 +140,17 @@ def drawGameState():
     gunName = DEBUG_FONT.render(defaultGun.name, False, WHITE)
     ammoText = str(defaultGun.currentMag) + " // " + str(defaultGun.remainingAmmo);
     ammoCounter = DEBUG_FONT.render(ammoText, False, WHITE)
-    window.blit(gunName, (0, WINDOW_HEIGHT-55))
-    window.blit(ammoCounter, (0, WINDOW_HEIGHT-30))
+    window.blit(gunName, (15, WINDOW_HEIGHT-55))
+    window.blit(ammoCounter, (15, WINDOW_HEIGHT-30))
     # Update the window
     pygame.display.flip()
 
 def generateEntities():
-    for i in range(ENTITY_COUNT):
+    for i in range(entityCOUNT):
         entityPosX = random.randint(100, WINDOW_WIDTH)
         entityPosY = random.randint(100, WINDOW_HEIGHT)
-        entity_ = Entity((entityPosX, entityPosY), (0, 0), random.randint(20, 60), 100)
-        entityList.append(entity_)
+        entity = Entity((entityPosX, entityPosY), (0, 0), random.randint(20, 60), 100)
+        entityList.append(entity)
 
 generateEntities()
 
