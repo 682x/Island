@@ -1,5 +1,5 @@
 class Item:
-    def __init__(self, name, projRadius, projSpeed, projRange, damage, magSize, totalAmmo):
+    def __init__(self, name, projRadius, projSpeed, projRange, damage, magSize, totalAmmo, fireRate, lastShot):
         self._name = name
         self._projRadius = projRadius
         self._projSpeed = projSpeed
@@ -9,9 +9,11 @@ class Item:
         self._totalAmmo = totalAmmo
         self._currentMag = magSize
         self._remainingAmmo = totalAmmo - magSize
+        self._fireRate = fireRate # minimum amount of time between shots (in milliseconds)
+        self._lastShot = lastShot # time of last shot
 
-    def canShoot(self):
-        return self._currentMag > 0
+    def canShoot(self, currentTime):
+        return self._currentMag > 0 and currentTime - self._lastShot >= self._fireRate
 
     def reload(self):
         self._remainingAmmo -= self._magSize
@@ -59,3 +61,11 @@ class Item:
     @property
     def remainingAmmo(self):
         return self._remainingAmmo
+
+    @property
+    def lastShot(self):
+        return self._lastShot
+    
+    @lastShot.setter
+    def lastShot(self, value):
+        self._lastShot = value

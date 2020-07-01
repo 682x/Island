@@ -4,6 +4,8 @@ import random
 from projectile import *
 from player import *
 from item import *
+from hostile import *
+from multipledispatch import dispatch
 
 
 WINDOW_WIDTH = 600
@@ -15,7 +17,9 @@ PLAYER_HEALTH = 100
 player = Player((100, 100), (0, 0), 10, PLAYER_HEALTH)
 projectileList = []
 entityList = []
-ENTITY_COUNT = 10
+hostileList = []
+HOSTILE_COUNT = 1
+ENTITY_COUNT = 5
 
 
 # Event list
@@ -37,11 +41,12 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 YELLOW = (255, 255, 0)
+BLUE = (0, 0, 255)
 
 # Player speed values, in px/sec
 PLAYER_SPEED = 200
 PLAYER_ACCELERATION = 1
-defaultGun = Item("Classic", 3, 300, 300, 25, 12, 48)
+defaultGun = Item("Classic", 3, 300, 300, 25, 12, 48, fireRate=200, lastShot=pygame.time.get_ticks())
 PROJECTILE_SPEED = 400
 PROJECTILE_DAMAGE = 25
 player.velX, player.velY = 0, 0
@@ -75,10 +80,12 @@ def updatePlayerPosition():
     if isPressed[pygame.K_r]:
         defaultGun.reload()
 
-
+@dispatch(Item) # Overloading fireProjectile
 def fireProjectile(gun):
     # Check ammo
-    if gun.canShoot():
+    # Check current time
+    currentTime = pygame.time.get_ticks()
+    if gun.canShoot(currentTime):
         gun.depleteAmmo()
         # Get current mouse position
         mouseX, mouseY = pygame.mouse.get_pos()
@@ -94,14 +101,41 @@ def fireProjectile(gun):
         projectile = Projectile((player.posX, player.posY),
                             (projectileVelX, projectileVelY), gun.projRadius, gun.projRange, gun.damage)
         projectileList.append(projectile)
+        gun.lastShot = currentTime
+
+
+# fireProjectile function for hostile entities (same implementation as above)
+@dispatch(Hostile,Item) # Overloading fireProjectile
+def fireProjectile(hostile, gun):    
+    currentTime = pygame.time.get_ticks()
+    if gun.canShoot(currentTime):
+        gun.depleteAmmo()
+        # Calculate distance to player
+        deltaX = hostile.posX - player.posX
+        deltaY = hostile.posY - player.posY
+        magnitude = math.sqrt(deltaX ** 2 + deltaY ** 2)
+        scalar = gun.projSpeed / magnitude
+        projectileVelX = -deltaX * scalar + hostile.velX
+        projectileVelY = -deltaY * scalar + hostile.velY
+        projectile = Projectile((hostile.posX, hostile.posY),
+                        (projectileVelX, projectileVelY), gun.projRadius, gun.projRange, gun.damage)
+        projectileList.append(projectile)
+        gun.lastShot = currentTime
+
+    if gun.currentMag == 0 and gun.remainingAmmo > 0:
+        gun.reload()
 
 def handleCollisions():
     # List of projectiles / entities that remain because they don't collide
     newProjectileList = []
     newEntityList = []
+    #newHostileList = [] (I don't know how to make collisions work between player and hostile entities)
+
     # Global declarations
     global projectileList
     global entityList
+    #global hostileList
+
     # Check projectiles that collide
     for projectile in projectileList:
         if not any([projectile.collidesWith(entity) for entity in entityList]):
@@ -113,14 +147,20 @@ def handleCollisions():
 
         if not entity.isDead:
             newEntityList.append(entity)
+    
     # Update the global lists
     projectileList = newProjectileList
     entityList = newEntityList
+    #hostileList = newHostileList
 
 def updateProjectilePositions():
     global projectileList
     projectileList = [projectile.advance(timeDeltaMs) for projectile in projectileList if projectile.inRange()]
 
+def updateHostileActions():
+    for hostile in hostileList: 
+        if hostile.inRange(player):
+            fireProjectile(hostile,hostile.gun)
 
 def drawGameState():
     # Fill the background with black
@@ -133,6 +173,9 @@ def drawGameState():
     # Draw the entities
     for entity in entityList:
         pygame.draw.circle(window, GREEN, entity.intPos, entity.radius)
+    # Draw the hostiles
+    for hostile in hostileList:
+        pygame.draw.circle(window, BLUE, hostile.intPos, hostile.radius)
     # Draw the FPS counter
     fpsSurface = DEBUG_FONT.render(f'{int(clock.get_fps())} FPS', False, YELLOW)
     window.blit(fpsSurface, (0, 0))
@@ -154,14 +197,31 @@ def generateEntities():
 
 generateEntities()
 
+def generateHostiles():
+    for i in range(HOSTILE_COUNT):
+        hostilePosX = random.randint(100, WINDOW_WIDTH)
+        hostilePosY = random.randint(100, WINDOW_HEIGHT)
+        hostileDefaultGun = Item("Classic", 3, 300, 300, 25, 12, 48, fireRate=500, lastShot=pygame.time.get_ticks())
+        hostile = Hostile(pos=(hostilePosX, hostilePosY), vel=(0, 0), radius=10, health=100, vision=300, gun=hostileDefaultGun)
+        # Don't spawn inside another entity and spawn outside of range of player
+        while(any(hostile.collidesWith(entity) for entity in entityList) or any(hostile.collidesWith(other) for other in hostileList) or hostile.inRange(player)):        
+            hostilePosX = random.randint(100, WINDOW_WIDTH)
+            hostilePosY = random.randint(100, WINDOW_HEIGHT)
+            hostile = Hostile(pos=(hostilePosX, hostilePosY), vel=(0, 0), radius=10, health=100, vision=300, gun=hostileDefaultGun)
+        hostileList.append(hostile)
+
+generateHostiles()
+
 while not any([event.type == pygame.QUIT for event in eventList]):
     # Get time delta in seconds
     timeDeltaMs = clock.tick() / 1000
+    
     # Get event list
     eventList = pygame.event.get()
     if any([event.type == pygame.MOUSEBUTTONDOWN for event in eventList]):
         fireProjectile(defaultGun)
     updatePlayerPosition()
+    updateHostileActions()
     updateProjectilePositions()
     handleCollisions()
     drawGameState()
